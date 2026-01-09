@@ -21,36 +21,52 @@
     }
 
     // CSV parser simple (gère les champs entre guillemets)
-    function parseCSV(text) {
-      const rows = [];
-      let row = [], field = "", inQuotes = false;
+    <script>
+  // Détecte automatiquement si le CSV utilise "," ou ";"
+  function detectDelimiter(text) {
+    const firstLine = (text.split(/\r?\n/)[0] || "").trim();
+    const commas = (firstLine.match(/,/g) || []).length;
+    const semis = (firstLine.match(/;/g) || []).length;
+    return semis > commas ? ";" : ",";
+  }
 
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i];
-        const next = text[i + 1];
+  // Parser CSV robuste (gère champs entre guillemets, \r\n, etc.)
+  function parseCSV(text) {
+    const DELIM = detectDelimiter(text);
 
-        if (c === '"' && inQuotes && next === '"') { // double quote escaped
-          field += '"'; i++;
-        } else if (c === '"') {
-          inQuotes = !inQuotes;
-        } else if (c === ',' && !inQuotes) {
-          row.push(field); field = "";
-        } else if ((c === '\n' || c === '\r') && !inQuotes) {
-          if (c === '\r' && next === '\n') i++;
-          row.push(field);
-          if (row.length > 1 || row[0] !== "") rows.push(row);
-          row = []; field = "";
-        } else {
-          field += c;
-        }
-      }
-      // last field
-      if (field.length || row.length) {
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const next = text[i + 1];
+
+      if (c === '"' && inQuotes && next === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = !inQuotes; }
+      else if (c === DELIM && !inQuotes) { row.push(field); field = ""; }
+      else if ((c === "\n" || c === "\r") && !inQuotes) {
+        if (c === "\r" && next === "\n") i++;
         row.push(field);
-        rows.push(row);
+
+        // Ignore les lignes entièrement vides
+        const hasAny = row.some(x => (x ?? "").toString().trim() !== "");
+        if (hasAny) rows.push(row);
+
+        row = []; field = "";
+      } else {
+        field += c;
       }
-      return rows;
     }
+
+    // Dernière ligne
+    row.push(field);
+    const hasAny = row.some(x => (x ?? "").toString().trim() !== "");
+    if (hasAny) rows.push(row);
+
+    return rows;
+  }
+</script>
+
 
     function normalizeHeader(h) {
       return (h || "")
