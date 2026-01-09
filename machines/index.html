@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Machines</title>
+</head>
+<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; line-height: 1.4;">
+  <a href="../">← Accueil</a>
+  <h1 id="title">Machines</h1>
+
+  <div id="content">Chargement…</div>
+
+  <script>
+    // 1) COLLEZ ICI votre URL CSV "pub?output=csv"
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1eXp94tWhlRdJf21zk3bWTKl2OqZ3-IYZqowJNUmQKW4/edit?usp=sharing";
+
+    // 2) Utilitaires
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    // CSV parser simple (gère les champs entre guillemets)
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
+
+        if (c === '"' && inQuotes && next === '"') { // double quote escaped
+          field += '"'; i++;
+        } else if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          row.push(field); field = "";
+        } else if ((c === '\n' || c === '\r') && !inQuotes) {
+          if (c === '\r' && next === '\n') i++;
+          row.push(field);
+          if (row.length > 1 || row[0] !== "") rows.push(row);
+          row = []; field = "";
+        } else {
+          field += c;
+        }
+      }
+      // last field
+      if (field.length || row.length) {
+        row.push(field);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function normalizeHeader(h) {
+      return (h || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/\p{Diacritic}/gu, "") // enlève accents
+        .replace(/\s+/g, "_");
+    }
+
+    function escapeHtml(s) {
+      return (s ?? "").toString()
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function badge(text) {
+      const t = (text || "").trim();
+      if (!t) return "";
+      return `<span style="display:inline-block;padding:4px 10px;border:1px solid #ddd;border-radius:999px;font-size:12px">${escapeHtml(t)}</span>`;
+    }
+
+    function linkButton(url, label) {
+      if (!url) return `<span style="opacity:.6">${escapeHtml(label)} : bientôt disponible</span>`;
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"
+                style="display:inline-block;padding:10px 14px;border:1px solid #ddd;border-radius:10px;text-decoration:none">
+                ${escapeHtml(label)}
+              </a>`;
+    }
+
+    async function loadData() {
+      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("Impossible de charger le CSV");
+      const csv = await res.text();
+
+      const grid = parseCSV(csv);
+      const headers = grid[0].map(normalizeHeader);
+      const data = [];
+
+      for (let i = 1; i < grid.length; i++) {
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) {
+          obj[headers[j]] = (grid[i][j] ?? "").trim();
+        }
+        // ignore lignes vides
+        if (Object.values(obj).some(v => v)) data.push(obj);
+      }
+      return data;
+    }
+
+    function renderList(items) {
+      document.getElementById("title").textContent = "Liste des modèles";
+      const rows = items
+        .sort((a,b) => (a.marque||"").localeCompare(b.marque||"") || (a.modele||"").localeCompare(b.modele||""))
+        .map(it => {
+          const slug = it.slug || "";
+          const url = `./?slug=${encodeURIComponent(slug)}`;
+          return `
+            <div style="padding:14px 0;border-bottom:1px solid #eee">
+              <div style="font-weight:600">${escapeHtml(it.marque)} – ${escapeHtml(it.modele)}</div>
+              <div style="margin:6px 0; color:#444">
+                ${escapeHtml(it.categorie || "")}
+                ${it.statut ? " · " + badge(it.statut) : ""}
+              </div>
+              <div><a href="${url}">Voir la page modèle</a></div>
+            </div>
+          `;
+        }).join("");
+
+      document.getElementById("content").innerHTML = `
+        <p style="color:#444">Astuce QR : utilisez <code>?slug=...</code> (ex: <code>?slug=bosch-wat28409fr</code>).</p>
+        <div style="margin-top:12px;border-top:1px solid #eee">${rows || "<p>Aucun modèle.</p>"}</div>
+      `;
+    }
+
+    function renderModel(model) {
+      const title = `${model.marque || ""} – ${model.modele || ""}`.trim() || "Modèle";
+      document.getElementById("title").textContent = title;
+
+      const notice = model.notice_pdf || model.notice || "";
+      const fiche = model.fiche_technique_pdf || model.fiche_technique || "";
+      const backLink = `<p><a href="./">← Retour à la liste</a></p>`;
+
+      document.getElementById("content").innerHTML = `
+        ${backLink}
+        <div style="padding:16px;border:1px solid #eee;border-radius:16px;max-width:720px">
+          <div style="color:#444;margin-bottom:8px">${escapeHtml(model.categorie || "")}</div>
+          <div style="margin-bottom:10px">${model.statut ? badge(model.statut) : ""}</div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
+            ${linkButton(notice, "📄 Notice PDF")}
+            ${linkButton(fiche, "📊 Fiche technique PDF")}
+          </div>
+
+          <div style="margin-top:10px;color:#555;font-size:14px">
+            <div><strong>Marque :</strong> ${escapeHtml(model.marque || "")}</div>
+            <div><strong>Modèle :</strong> ${escapeHtml(model.modele || "")}</div>
+            ${model.slug ? `<div><strong>Slug :</strong> ${escapeHtml(model.slug)}</div>` : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    (async () => {
+      try {
+        const items = await loadData();
+        const slug = (getParam("slug") || "").trim();
+
+        if (!slug) {
+          renderList(items);
+          return;
+        }
+
+        const found = items.find(it => (it.slug || "").toLowerCase() === slug.toLowerCase());
+        if (!found) {
+          document.getElementById("title").textContent = "Modèle introuvable";
+          document.getElementById("content").innerHTML = `
+            <p>Le modèle <code>${escapeHtml(slug)}</code> n’existe pas (ou le slug ne correspond pas).</p>
+            <p><a href="./">Retour à la liste</a></p>
+          `;
+          return;
+        }
+
+        renderModel(found);
+      } catch (e) {
+        document.getElementById("content").innerHTML = `
+          <p style="color:#b00">Erreur : ${escapeHtml(e.message || String(e))}</p>
+          <p>Vérifiez : lien CSV publié, accès public, et en-têtes de colonnes.</p>
+        `;
+      }
+    })();
+  </script>
+</body>
+</html>
