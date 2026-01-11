@@ -99,24 +99,17 @@
     }
 
     async function loadData() {
-      const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error("Impossible de charger le CSV");
-      const csv = await res.text();
+  const url = `${SUPABASE_URL}/rest/v1/machines?select=categorie,marque,modele,notice_pdf,fiche_technique_pdf,statut,slug&order=marque.asc,modele.asc`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+  if (!res.ok) throw new Error("Impossible de charger les données Supabase (REST).");
+  return await res.json();
+}
 
-      const grid = parseCSV(csv);
-      const headers = grid[0].map(normalizeHeader);
-      const data = [];
-
-      for (let i = 1; i < grid.length; i++) {
-        const obj = {};
-        for (let j = 0; j < headers.length; j++) {
-          obj[headers[j]] = (grid[i][j] ?? "").trim();
-        }
-        // ignore lignes vides
-        if (Object.values(obj).some(v => v)) data.push(obj);
-      }
-      return data;
-    }
 
     function renderList(items) {
       document.getElementById("title").textContent = "Liste des modèles";
