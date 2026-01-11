@@ -119,6 +119,18 @@
         .replaceAll("'", "&#039;");
     }
 
+    function normalizeText(s) {
+  return (s ?? "").toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD").replace(/\p{Diacritic}/gu, ""); // enlève accents
+}
+
+function uniqueSorted(values) {
+  const set = new Set(values.filter(Boolean));
+  return Array.from(set).sort((a,b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+}
+
     function badge(text) {
       const t = (text || "").trim();
       if (!t) return "";
@@ -159,34 +171,130 @@
     }
 
     function renderList(items) {
-      document.getElementById("title").textContent = "Liste des modèles";
+  document.getElementById("title").textContent = "Liste des modèles";
 
-      let html = '<p style="color:#444">Astuce QR : utilisez <code>?slug=...</code> (ex: <code>?slug=bosch-wat28409fr</code>).</p>';
+  const all = Array.isArray(items) ? items : [];
 
-      if (!items || items.length === 0) {
-        html += "<p>Aucun modèle.</p>";
-        contentEl.innerHTML = html;
-        return;
-      }
+  // Options catégories
+  const categories = uniqueSorted(all.map(x => (x.categorie || "").trim()));
 
-      html += '<div style="margin-top:12px;border-top:1px solid #eee">';
-      for (const it of items) {
-        const slug = it.slug || "";
-        const url = "./?slug=" + encodeURIComponent(slug);
+  // UI
+  contentEl.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <div style="flex:1;min-width:220px">
+        <label style="display:block;font-size:12px;color:#666;font-weight:800;margin-bottom:6px">Recherche (marque / modèle)</label>
+        <input id="q" placeholder="ex: bosch, série 6, WAT..." 
+               style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);outline:none" />
+      </div>
 
-        html += ''
-          + '<div class="list-item">'
-          +   '<div class="title">' + escapeHtml(it.marque || "") + " – " + escapeHtml(it.modele || "") + '</div>'
-          +   '<div class="meta">'
-          +     escapeHtml(it.categorie || "")
-          +     (it.statut ? " · " + badge(it.statut) : "")
-          +   '</div>'
-          +   '<div><a href="' + url + '">Voir la page modèle</a></div>'
-          + '</div>';
-      }
-      html += "</div>";
-      contentEl.innerHTML = html;
+      <div style="min-width:200px">
+        <label style="display:block;font-size:12px;color:#666;font-weight:800;margin-bottom:6px">Catégorie</label>
+        <select id="cat"
+                style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:#fff">
+          <option value="">Toutes</option>
+          ${categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}
+        </select>
+      </div>
+
+      <div style="min-width:220px">
+        <label style="display:block;font-size:12px;color:#666;font-weight:800;margin-bottom:6px">Tri</label>
+        <select id="sort"
+                style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:#fff">
+          <option value="brand_model">Marque A→Z, Modèle A→Z</option>
+          <option value="model_brand">Modèle A→Z, Marque A→Z</option>
+          <option value="category_brand_model">Catégorie, Marque, Modèle</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;color:#555">
+      <span id="count"></span>
+    </div>
+
+    <div id="list" style="margin-top:12px;border-top:1px solid #eee"></div>
+  `;
+
+  const qEl = document.getElementById("q");
+  const catEl = document.getElementById("cat");
+  const sortEl = document.getElementById("sort");
+  const listEl = document.getElementById("list");
+  const countEl = document.getElementById("count");
+
+  function sortItems(arr, mode) {
+    const coll = (a, b) => a.localeCompare(b, "fr", { sensitivity: "base" });
+
+    const get = (it, key) => (it[key] || "").toString().trim();
+
+    const byBrandModel = (a,b) => coll(get(a,"marque"), get(b,"marque")) || coll(get(a,"modele"), get(b,"modele"));
+    const byModelBrand = (a,b) => coll(get(a,"modele"), get(b,"modele")) || coll(get(a,"marque"), get(b,"marque"));
+    const byCatBrandModel = (a,b) => coll(get(a,"categorie"), get(b,"categorie")) || byBrandModel(a,b);
+
+    const copy = arr.slice();
+    if (mode === "model_brand") copy.sort(byModelBrand);
+    else if (mode === "category_brand_model") copy.sort(byCatBrandModel);
+    else copy.sort(byBrandModel);
+    return copy;
+  }
+
+  function renderRows(arr) {
+    if (!arr.length) {
+      listEl.innerHTML = `<p style="margin:14px 0">Aucun résultat.</p>`;
+      countEl.textContent = "0 modèle";
+      return;
     }
+
+    countEl.textContent = `${arr.length} modèle${arr.length > 1 ? "s" : ""}`;
+
+    listEl.innerHTML = arr.map(it => {
+      const slug = (it.slug || "").trim();
+      const url = "./?slug=" + encodeURIComponent(slug);
+
+      return `
+        <div class="list-item">
+          <div class="title">${escapeHtml(it.marque || "")} – ${escapeHtml(it.modele || "")}</div>
+          <div class="meta">
+            ${escapeHtml(it.categorie || "")}
+            ${it.statut ? " · " + badge(it.statut) : ""}
+          </div>
+          <div><a href="${url}">Voir la page modèle</a></div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function apply() {
+    const q = normalizeText(qEl.value);
+    const cat = (catEl.value || "").trim();
+    const sortMode = sortEl.value;
+
+    let filtered = all;
+
+    if (cat) {
+      filtered = filtered.filter(it => (it.categorie || "").trim() === cat);
+    }
+
+    if (q) {
+      filtered = filtered.filter(it => {
+        const brand = normalizeText(it.marque);
+        const model = normalizeText(it.modele);
+        const combined = brand + " " + model;
+        return combined.includes(q);
+      });
+    }
+
+    filtered = sortItems(filtered, sortMode);
+    renderRows(filtered);
+  }
+
+  // Events
+  qEl.addEventListener("input", apply);
+  catEl.addEventListener("change", apply);
+  sortEl.addEventListener("change", apply);
+
+  // Premier rendu
+  apply();
+}
+
 
     function renderModel(m) {
       const title = ((m.marque || "") + " – " + (m.modele || "")).trim() || "Modèle";
