@@ -3,84 +3,108 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Machines</title>
+  <title>Machines – Envie Nord</title>
+
   <style>
-  :root {
-    --envie-green: #009640;
-    --envie-green-dark: #006B2D;
-    --envie-green-light: #E6F4EC;
-    --envie-text: #333333;
-    --envie-bg: #F5F5F5;
-    --envie-white: #FFFFFF;
-  }
-
-  body {
-    background: var(--envie-bg);
-    color: var(--envie-text);
-  }
-
-  a {
-    color: var(--envie-green);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  h1 {
-    color: var(--envie-green-dark);
-  }
-
-  .card {
-    background: var(--envie-white);
-    border: 1px solid #e0e0e0;
-    border-radius: 16px;
-    padding: 16px;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--envie-green-light);
-    color: var(--envie-green-dark);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .btn {
-    display: inline-block;
-    padding: 10px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--envie-green);
-    color: var(--envie-green);
-    background: var(--envie-white);
-    font-weight: 600;
-  }
-
-  .btn:hover {
-    background: var(--envie-green);
-    color: var(--envie-white);
-  }
-
-  .btn-disabled {
-    opacity: 0.6;
-  }
-</style>
-
+    :root{
+      --envie-green:#009640;
+      --envie-green-dark:#006B2D;
+      --envie-green-light:#E6F4EC;
+      --envie-text:#333333;
+      --envie-bg:#F5F5F5;
+      --envie-white:#FFFFFF;
+      --border:#E5E5E5;
+    }
+    body{
+      margin:24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:var(--envie-bg);
+      color:var(--envie-text);
+      line-height:1.4;
+    }
+    a{ color:var(--envie-green); text-decoration:none; font-weight:600; }
+    a:hover{ text-decoration:underline; }
+    h1{ color:var(--envie-green-dark); margin:12px 0 16px; }
+    .topbar{
+      display:flex; align-items:center; gap:12px;
+      padding:14px 16px; background:var(--envie-white);
+      border:1px solid var(--border); border-radius:18px;
+    }
+    .brand{
+      font-weight:800; color:var(--envie-green-dark);
+      letter-spacing:.2px;
+    }
+    .card{
+      background:var(--envie-white);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      max-width:820px;
+    }
+    .list-item{
+      padding:14px 0;
+      border-bottom:1px solid #eee;
+    }
+    .title{
+      font-weight:800;
+    }
+    .meta{
+      margin:6px 0; color:#444;
+    }
+    .badge{
+      display:inline-block;
+      padding:4px 12px;
+      border-radius:999px;
+      background:var(--envie-green-light);
+      color:var(--envie-green-dark);
+      font-size:12px;
+      font-weight:800;
+      border:1px solid #cfe8da;
+    }
+    .btn{
+      display:inline-block;
+      padding:10px 16px;
+      border-radius:12px;
+      border:1px solid var(--envie-green);
+      color:var(--envie-green);
+      background:var(--envie-white);
+      font-weight:800;
+    }
+    .btn:hover{
+      background:var(--envie-green);
+      color:var(--envie-white);
+      text-decoration:none;
+    }
+    .btn-disabled{
+      opacity:.6;
+      border-color:#ccc;
+      color:#666;
+      background:#fafafa;
+      cursor:default;
+    }
+    code{ background:#fff; border:1px solid var(--border); padding:2px 6px; border-radius:8px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
 </head>
 
-<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; line-height: 1.4;">
-  <a href="../">← Accueil</a>
+<body>
+  <div class="topbar">
+    <a href="../">← Accueil</a>
+    <div class="brand">Envie Nord — Notices & Fiches techniques</div>
+  </div>
+
   <h1 id="title">Machines</h1>
-  <div id="content">Chargement…</div>
+
+  <div id="content" class="card">Chargement…</div>
 
   <script>
-    // ✅ REMPLACEZ ICI
-    const SUPABASE_URL = "https://ybepaugrwnlpdewzqdzp.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_Dy87RVWNEBzT-sxScuSr1A_kUflkc4a";
+    // ✅ Remplacez avec vos infos Supabase
+    const SUPABASE_URL = "https://XXXX.supabase.co";
+    const SUPABASE_ANON_KEY = "VOTRE_ANON_KEY";
+
+    // ✅ Petit garde-fou: si le script tourne, on change immédiatement le texte
+    const contentEl = document.getElementById("content");
+    contentEl.textContent = "Connexion…";
 
     function getParam(name) {
       return new URLSearchParams(window.location.search).get(name);
@@ -98,29 +122,25 @@
     function badge(text) {
       const t = (text || "").trim();
       if (!t) return "";
-      return `<span class="badge">${escapeHtml(t)}</span>`;
-
+      return '<span class="badge">' + escapeHtml(t) + '</span>';
     }
 
     function linkButton(url, label) {
       const u = (url || "").trim();
-      if (!u) {
-  return `<span class="btn btn-disabled">${escapeHtml(label)} : bientôt disponible</span>`;
-}
-return `<a class="btn" href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`;
-
+      if (!u) return '<span class="btn btn-disabled">' + escapeHtml(label) + ' : bientôt disponible</span>';
+      return '<a class="btn" href="' + escapeHtml(u) + '" target="_blank" rel="noopener">' + escapeHtml(label) + '</a>';
     }
 
     async function supabaseGet(pathWithQuery) {
-      const res = await fetch(`${SUPABASE_URL}${pathWithQuery}`, {
+      const res = await fetch(SUPABASE_URL + pathWithQuery, {
         headers: {
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: "Bearer " + SUPABASE_ANON_KEY,
         },
       });
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
-        throw new Error(`Supabase error (${res.status}) ${txt}`);
+        throw new Error("Supabase (" + res.status + ") " + txt);
       }
       return await res.json();
     }
@@ -133,101 +153,89 @@ return `<a class="btn" href="${escapeHtml(u)}" target="_blank" rel="noopener">${
 
     async function loadOneBySlug(slug) {
       const data = await supabaseGet(
-        `/rest/v1/machines?select=categorie,marque,modele,notice_pdf,fiche_technique_pdf,statut,slug&slug=eq.${encodeURIComponent(slug)}&limit=1`
+        "/rest/v1/machines?select=categorie,marque,modele,notice_pdf,fiche_technique_pdf,statut,slug&slug=eq." + encodeURIComponent(slug) + "&limit=1"
       );
       return data[0] || null;
     }
 
     function renderList(items) {
-     <div class="card">
-       document.getElementById("title").textContent = "Liste des modèles";
+      document.getElementById("title").textContent = "Liste des modèles";
 
-      const rows = (items || []).map(it => {
+      let html = '<p style="color:#444">Astuce QR : utilisez <code>?slug=...</code> (ex: <code>?slug=bosch-wat28409fr</code>).</p>';
+
+      if (!items || items.length === 0) {
+        html += "<p>Aucun modèle.</p>";
+        contentEl.innerHTML = html;
+        return;
+      }
+
+      html += '<div style="margin-top:12px;border-top:1px solid #eee">';
+      for (const it of items) {
         const slug = it.slug || "";
-        const url = `./?slug=${encodeURIComponent(slug)}`;
-        return `
-          <div style="padding:14px 0;border-bottom:1px solid #eee">
-            <div style="font-weight:600">${escapeHtml(it.marque)} – ${escapeHtml(it.modele)}</div>
-            <div style="margin:6px 0; color:#444">
-              ${escapeHtml(it.categorie || "")}
-              ${it.statut ? " · " + badge(it.statut) : ""}
-            </div>
-            <div><a href="${url}">Voir la page modèle</a></div>
-          </div>
-        `;
-      }).join("");
+        const url = "./?slug=" + encodeURIComponent(slug);
 
-      document.getElementById("content").innerHTML = `
-        <p style="color:#444">Astuce QR : utilisez <code>?slug=...</code> (ex: <code>?slug=bosch-wat28409fr</code>).</p>
-        <div style="margin-top:12px;border-top:1px solid #eee">
-          ${rows || "<p>Aucun modèle.</p>"}
-        </div>
-        </div>
-      `;
+        html += ''
+          + '<div class="list-item">'
+          +   '<div class="title">' + escapeHtml(it.marque || "") + " – " + escapeHtml(it.modele || "") + '</div>'
+          +   '<div class="meta">'
+          +     escapeHtml(it.categorie || "")
+          +     (it.statut ? " · " + badge(it.statut) : "")
+          +   '</div>'
+          +   '<div><a href="' + url + '">Voir la page modèle</a></div>'
+          + '</div>';
+      }
+      html += "</div>";
+      contentEl.innerHTML = html;
     }
 
-    function renderModel(model) {
-      <div class="card">
-        const title = `${model.marque || ""} – ${model.modele || ""}`.trim() || "Modèle";
+    function renderModel(m) {
+      const title = ((m.marque || "") + " – " + (m.modele || "")).trim() || "Modèle";
       document.getElementById("title").textContent = title;
 
-      const notice = model.notice_pdf || "";
-      const fiche  = model.fiche_technique_pdf || "";
+      const notice = m.notice_pdf || "";
+      const fiche  = m.fiche_technique_pdf || "";
 
-      document.getElementById("content").innerHTML = `
-        <p><a href="./">← Retour à la liste</a></p>
-
-        <div style="padding:16px;border:1px solid #eee;border-radius:16px;max-width:720px">
-          <div style="color:#444;margin-bottom:8px">${escapeHtml(model.categorie || "")}</div>
-          <div style="margin-bottom:10px">${model.statut ? badge(model.statut) : ""}</div>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
-            ${linkButton(notice, "📄 Notice PDF")}
-            ${linkButton(fiche,  "📊 Fiche technique PDF")}
-          </div>
-
-          <div style="margin-top:10px;color:#555;font-size:14px">
-            <div><strong>Marque :</strong> ${escapeHtml(model.marque || "")}</div>
-            <div><strong>Modèle :</strong> ${escapeHtml(model.modele || "")}</div>
-            <div><strong>Slug :</strong> ${escapeHtml(model.slug || "")}</div>
-          </div>
-        </div>
-        </div>
-      `;
+      contentEl.innerHTML = ''
+        + '<p><a href="./">← Retour à la liste</a></p>'
+        + '<div class="card" style="margin-top:10px">'
+        +   '<div class="meta">' + escapeHtml(m.categorie || "") + '</div>'
+        +   '<div style="margin:10px 0">' + (m.statut ? badge(m.statut) : "") + '</div>'
+        +   '<div class="row" style="margin:12px 0">'
+        +     linkButton(notice, "📄 Notice PDF")
+        +     linkButton(fiche,  "📊 Fiche technique PDF")
+        +   '</div>'
+        +   '<div style="margin-top:10px;color:#555;font-size:14px">'
+        +     "<div><strong>Marque :</strong> " + escapeHtml(m.marque || "") + "</div>"
+        +     "<div><strong>Modèle :</strong> " + escapeHtml(m.modele || "") + "</div>"
+        +     "<div><strong>Slug :</strong> " + escapeHtml(m.slug || "") + "</div>"
+        +   "</div>"
+        + "</div>";
     }
 
     (async () => {
       try {
         const slug = (getParam("slug") || "").trim();
+
         if (!slug) {
           const items = await loadList();
           renderList(items);
           return;
         }
 
-        const model = await loadOneBySlug(slug);
-        if (!model) {
+        const m = await loadOneBySlug(slug);
+        if (!m) {
           document.getElementById("title").textContent = "Modèle introuvable";
-          document.getElementById("content").innerHTML = `
-            <p>Le modèle <code>${escapeHtml(slug)}</code> n’existe pas (ou le slug ne correspond pas).</p>
-            <p><a href="./">Retour à la liste</a></p>
-          `;
+          contentEl.innerHTML = '<p>Le modèle <code>' + escapeHtml(slug) + '</code> n’existe pas.</p><p><a href="./">Retour à la liste</a></p>';
           return;
         }
 
-        renderModel(model);
+        renderModel(m);
       } catch (e) {
-  const msg = escapeHtml(e && (e.message || String(e)) ? (e.message || String(e)) : "Erreur inconnue");
-  document.getElementById("content").innerHTML =
-    '<p style="color:#b00"><strong>Erreur :</strong> ' + msg + '</p>' +
-    '<p>Vérifiez :</p>' +
-    '<ul>' +
-    '<li>SUPABASE_URL et SUPABASE_ANON_KEY</li>' +
-    "<li>RLS activé + policy SELECT pour <code>anon</code></li>" +
-    "<li>la table s'appelle bien <code>machines</code> et contient des lignes</li>" +
-    '</ul>';
-}
-
+        const msg = (e && (e.message || String(e))) ? (e.message || String(e)) : "Erreur inconnue";
+        contentEl.innerHTML =
+          '<p style="color:#b00"><strong>Erreur :</strong> ' + escapeHtml(msg) + '</p>' +
+          '<p>Vérifiez : SUPABASE_URL / ANON_KEY, RLS + policy SELECT, table <code>machines</code>.</p>';
+      }
     })();
   </script>
 </body>
