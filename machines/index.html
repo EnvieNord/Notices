@@ -146,16 +146,17 @@
 
         renderModel(model);
       } catch (e) {
-        document.getElementById("content").innerHTML = `
-          <p style="color:#b00"><strong>Erreur :</strong> ${escapeHtml(e.message || String(e))}</p>
-          <p>Vérifiez :</p>
-          <ul>
-            <li>SUPABASE_URL et SUPABASE_ANON_KEY</li>
-            <li>RLS activé + policy SELECT pour <code>anon</code></li>
-            <li>la table s'appelle bien <code>machines</code> et contient des lignes</li>
-          </ul>
-        `;
-      }
+  const msg = escapeHtml(e && (e.message || String(e)) ? (e.message || String(e)) : "Erreur inconnue");
+  document.getElementById("content").innerHTML =
+    '<p style="color:#b00"><strong>Erreur :</strong> ' + msg + '</p>' +
+    '<p>Vérifiez :</p>' +
+    '<ul>' +
+    '<li>SUPABASE_URL et SUPABASE_ANON_KEY</li>' +
+    "<li>RLS activé + policy SELECT pour <code>anon</code></li>" +
+    "<li>la table s'appelle bien <code>machines</code> et contient des lignes</li>" +
+    '</ul>';
+}
+
     })();
   </script>
 </body>
