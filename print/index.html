@@ -1,556 +1,247 @@
- <!doctype html>
+<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Impression étiquettes QR — Envie Nord</title>
 
-  <!-- QRCode.js (génération QR côté navigateur) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <style>
     :root{
       --envie-green:#009640;
       --envie-green-dark:#006B2D;
-      --envie-green-light:#E6F4EC;
-      --envie-text:#333333;
       --envie-bg:#F5F5F5;
       --envie-white:#FFFFFF;
       --border:#E5E5E5;
 
-      /* Planches sans marge */
       --page-margin: 0mm;
       --gap: 0mm;
-
-      --label-radius: 0mm; /* souvent mieux sur planches sans marge */
+      --label-radius: 0mm;
     }
 
     body{
-      margin: 20px;
+      margin:20px;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: var(--envie-bg);
+      background:var(--envie-bg);
       color:#333;
     }
 
+    a{ color:var(--envie-green); font-weight:800; text-decoration:none; }
     .topbar{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; background:var(--envie-white);
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px 16px; background:#fff;
       border:1px solid var(--border); border-radius:18px;
-      max-width: 1100px;
+      max-width:1100px;
     }
     .brand{ font-weight:900; color:var(--envie-green-dark); }
-    a{ color:var(--envie-green); text-decoration:none; font-weight:800; }
-    a:hover{ text-decoration:underline; }
 
     .panel{
-      margin-top: 14px;
-      padding:14px 16px;
-      background:var(--envie-white);
-      border:1px solid var(--border);
-      border-radius:18px;
-      max-width: 1100px;
+      margin-top:14px; padding:14px 16px;
+      background:#fff; border:1px solid var(--border);
+      border-radius:18px; max-width:1100px;
     }
 
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
-    label{ display:block; font-size:12px; color:#666; font-weight:800; margin-bottom:6px; }
-    input, select{
-      padding:12px 14px; border-radius:14px; border:1px solid var(--border);
-      background:#fff; min-width: 220px;
-    }
-    .btn{
-      display:inline-block;
-      padding:12px 18px;
-      border-radius:14px;
-      border:2px solid var(--envie-green);
-      background:#fff;
-      color:var(--envie-green);
-      font-weight:900;
-      cursor:pointer;
-    }
-    .btn:hover{ background:var(--envie-green); color:#fff; }
-    .btn-muted{
-      border-color:#bbb !important;
-      color:#444 !important;
-    }
-    .btn-muted:hover{
-      background:#f2f2f2 !important;
-      color:#222 !important;
-    }
-
-    /* --- Zone d'étiquettes (APERÇU) --- */
-    .sheet{
-      margin-top: 14px;
-      max-width: 1100px;
-      background: var(--envie-white);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 14px 16px;
-    }
-
-    .hint{ color:#666; font-size:13px; margin: 0 0 10px; }
-
-    /* Conteneur qui simule une page A4 */
-    .page{
-      width: 210mm;
-      height: 297mm;
-      box-sizing: border-box;
-      padding: var(--page-margin);
-      margin: 0 auto 12mm;
-      background: #fff;
-      border: 1px dashed #ddd; /* visible à l’écran, caché à l’impression */
-    }
-
-    /* Grille 2 colonnes x 8 lignes */
-    .grid{
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(8, minmax(0, 1fr)); /* IMPORTANT */
-  gap: var(--gap);
-}
-
-
-    .page{
-  width: 210mm;
-  height: 297mm;
-  box-sizing: border-box;
-  padding: var(--page-margin);
-  overflow: hidden; /* IMPORTANT : empêche le débordement */
-}
-
-.label{
-  box-sizing: border-box;
-  min-height: 0;  /* IMPORTANT : autorise la réduction dans la grille */
-  border: 1px solid #ddd;
-  border-radius: var(--label-radius);
-  padding: 5mm 4mm; /* un poil plus petit pour sécuriser */
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 5mm;
-  overflow:hidden;
-}
-
-
-    .label .txt{
-      min-width: 0;
-      flex: 1;
-    }
-    .label .txt .m{
-      font-weight: 900;
-      color: var(--envie-green-dark);
-      font-size: 12pt;
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .label .txt .mo{
-      font-weight: 800;
-      font-size: 11pt;
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .label .txt .c{
-      margin-top: 2mm;
-      font-size: 9pt;
-      color:#555;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .qr{
-      width: 28mm;
-      height: 28mm;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex: 0 0 auto;
-    }
-
-    /* --- Table quantités --- */
-    .table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:8px;
-    }
-    .table th, .table td{
-      border-bottom:1px solid #eee;
-      padding:10px 6px;
-      font-size:14px;
-      vertical-align:middle;
-    }
-    .table th{
-      text-align:left;
-      color:#555;
-      font-weight:900;
-    }
-    .qtywrap{
-      display:flex; gap:8px; align-items:center;
-    }
-    .smallbtn{
-      width:34px;height:34px;border-radius:10px;
+    label{ font-size:12px; font-weight:800; color:#666; display:block; margin-bottom:6px; }
+    input,select{
+      padding:12px 14px; border-radius:14px;
       border:1px solid var(--border); background:#fff;
+      min-width:200px;
+    }
+
+    .btn{
+      padding:12px 18px; border-radius:14px;
+      border:2px solid var(--envie-green);
+      background:#fff; color:var(--envie-green);
       font-weight:900; cursor:pointer;
     }
-    .smallbtn:hover{ background:#f3f3f3; }
-    .qty{
-      width:70px;
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid var(--border);
-    }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#666; }
+    .btn:hover{ background:var(--envie-green); color:#fff; }
+    .btn-muted{ border-color:#bbb; color:#444; }
 
-    /* --- Impression --- */
-    @media print {
+    .sheet{
+      margin-top:14px; background:#fff;
+      border:1px solid var(--border);
+      border-radius:18px; padding:14px 16px;
+      max-width:1100px;
+    }
+
+    .page{
+      width:210mm; height:297mm;
+      padding:var(--page-margin);
+      box-sizing:border-box;
+      overflow:hidden;
+    }
+
+    .grid{
+      display:grid;
+      width:100%; height:100%;
+      grid-template-columns:1fr 1fr;
+      grid-template-rows:repeat(8,minmax(0,1fr));
+      gap:var(--gap);
+    }
+
+    .label{
+      border:1px solid #ddd;
+      padding:5mm 4mm;
+      display:flex; justify-content:space-between;
+      align-items:center;
+      box-sizing:border-box;
+      overflow:hidden;
+    }
+
+    .label-empty{
+      border:1px dashed #ccc;
+      background:#fafafa;
+    }
+
+    .txt .m{ font-weight:900; font-size:12pt; color:var(--envie-green-dark); }
+    .txt .mo{ font-weight:800; font-size:11pt; }
+    .txt .c{ font-size:9pt; color:#555; }
+
+    .qr{ width:28mm; height:28mm; }
+
+    .table{ width:100%; border-collapse:collapse; }
+    .table th,.table td{ border-bottom:1px solid #eee; padding:8px; }
+    .table th{ text-align:left; font-weight:900; color:#555; }
+
+    .qtywrap{ display:flex; gap:6px; }
+    .smallbtn{ width:32px; height:32px; border-radius:8px; border:1px solid #ccc; cursor:pointer; }
+
+    @media print{
       body{ margin:0; background:#fff; }
-      .topbar, .panel, .sheet .hint { display:none !important; }
-      .sheet{ border:none; padding:0; margin:0; }
-      .page{ border:none; margin:0; border-radius:0; }
-      @page { size: A4; margin: 0; }
+      .topbar,.panel{ display:none; }
+      @page{ size:A4; margin:0; }
     }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <div style="display:flex;gap:12px;align-items:center">
-      <a href="../">← Accueil</a>
-      <div class="brand">Envie Nord — Impression étiquettes QR</div>
-    </div>
-    <button class="btn" id="printBtn">🖨️ Imprimer</button>
-  </div>
 
-  <div class="panel">
-    <div class="row">
-      <div>
-        <label>Recherche (marque / modèle)</label>
-        <input id="q" placeholder="ex: bosch, WAT..." />
-      </div>
+<div class="topbar">
+  <div class="brand">Envie Nord — Étiquettes QR</div>
+  <button class="btn" onclick="window.print()">🖨️ Imprimer</button>
+</div>
 
-      <div>
-        <label>Catégorie</label>
-        <select id="cat">
-          <option value="">Toutes</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Tri</label>
-        <select id="sort">
-          <option value="brand_model">Marque A→Z, Modèle A→Z</option>
-          <option value="category_brand_model">Catégorie, Marque, Modèle</option>
-          <option value="model_brand">Modèle A→Z, Marque A→Z</option>
-        </select>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:end">
-        <button class="btn" id="generateBtn">🧾 Générer les étiquettes</button>
-        <button class="btn btn-muted" id="clearBtn">🧹 Vider</button>
-      </div>
-    </div>
-
-    <div style="margin-top:10px;color:#666;font-size:13px" id="count"></div>
-
-    <div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px">
-      <div style="font-weight:900;margin-bottom:8px;color:var(--envie-green-dark)">Sélection & quantités</div>
-      <div id="picklist"></div>
+<div class="panel">
+  <div class="row">
+    <div><label>Recherche</label><input id="q"></div>
+    <div><label>Catégorie</label><select id="cat"><option value="">Toutes</option></select></div>
+    <div><label>Étiquettes vierges au début</label><input id="offset" type="number" min="0" max="15" value="0"></div>
+    <div>
+      <button class="btn" id="generateBtn">Générer</button>
+      <button class="btn btn-muted" id="clearBtn">Vider</button>
     </div>
   </div>
+  <p id="count"></p>
+  <div id="picklist"></div>
+</div>
 
-  <div class="sheet" id="sheet">
-    <p class="hint">Aperçu : 16 étiquettes par page (2 colonnes × 8). Pour des planches sans marge : mettez “Marges : aucune”, “Échelle : 100%”, et désactivez en-têtes/pieds de page dans la fenêtre d’impression.</p>
-    <div id="pages"></div>
-  </div>
+<div class="sheet">
+  <div id="pages"></div>
+</div>
 
-  <script>
-    // ✅ Remplacez avec vos infos Supabase
-    const SUPABASE_URL = "https://ybepaugrwnlpdewzqdzp.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_Dy87RVWNEBzT-sxScuSr1A_kUflkc4a";
+<script>
+const SUPABASE_URL = "https://ybepaugrwnlpdewzqdzp.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dy87RVWNEBzT-sxScuSr1A_kUflkc4a";
 
-    const pagesEl = document.getElementById("pages");
-    const countEl = document.getElementById("count");
+let ALL=[], QTY={};
 
-    function escapeHtml(s) {
-      return (s ?? "").toString()
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+const pagesEl=document.getElementById("pages");
+const countEl=document.getElementById("count");
 
-    function normalizeText(s) {
-      return (s ?? "").toString()
-        .trim()
-        .toLowerCase()
-        .normalize("NFD").replace(/\p{Diacritic}/gu, "");
-    }
+const esc=s=>(""+(s||"")).replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 
-    function uniqueSorted(values) {
-      const set = new Set(values.map(v => (v||"").trim()).filter(Boolean));
-      return Array.from(set).sort((a,b) => a.localeCompare(b, "fr", { sensitivity:"base" }));
-    }
+async function api(q){
+  const r=await fetch(SUPABASE_URL+q,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
+  return r.json();
+}
 
-    async function supabaseGet(pathWithQuery) {
-      const res = await fetch(SUPABASE_URL + pathWithQuery, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: "Bearer " + SUPABASE_ANON_KEY,
-        },
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error("Supabase (" + res.status + ") " + txt);
-      }
-      return await res.json();
-    }
+function buildUrl(slug){
+  return location.origin+location.pathname.replace(/\/print.*/,"/machines/?slug="+encodeURIComponent(slug));
+}
 
-    async function loadAll() {
-      return await supabaseGet(
-        "/rest/v1/machines?select=categorie,marque,modele,slug&order=marque.asc,modele.asc"
-      );
-    }
+function renderPicker(){
+  const q=document.getElementById("q").value.toLowerCase();
+  const cat=document.getElementById("cat").value;
+  let f=ALL.filter(m=>(!cat||m.categorie===cat)&&(`${m.marque} ${m.modele}`.toLowerCase().includes(q)));
 
-    function sortItems(arr, mode) {
-      const coll = (a, b) => a.localeCompare(b, "fr", { sensitivity: "base" });
-      const get = (it, key) => (it[key] || "").toString().trim();
+  countEl.textContent=`${f.length} modèles — ${Object.values(QTY).reduce((a,b)=>a+b,0)} étiquettes`;
 
-      const byBrandModel = (a,b) => coll(get(a,"marque"), get(b,"marque")) || coll(get(a,"modele"), get(b,"modele"));
-      const byModelBrand = (a,b) => coll(get(a,"modele"), get(b,"modele")) || coll(get(a,"marque"), get(b,"marque"));
-      const byCatBrandModel = (a,b) => coll(get(a,"categorie"), get(b,"categorie")) || byBrandModel(a,b);
+  document.getElementById("picklist").innerHTML=`
+    <table class="table">
+      <thead><tr><th>Modèle</th><th>Qté</th></tr></thead>
+      <tbody>${f.map(m=>`
+        <tr>
+          <td><strong>${esc(m.marque)}</strong><br>${esc(m.modele)}</td>
+          <td><input type="number" min="0" value="${QTY[m.slug]||0}"
+            onchange="QTY['${m.slug}']=+this.value||0"></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
 
-      const copy = arr.slice();
-      if (mode === "model_brand") copy.sort(byModelBrand);
-      else if (mode === "category_brand_model") copy.sort(byCatBrandModel);
-      else copy.sort(byBrandModel);
-      return copy;
-    }
+function generate(){
+  pagesEl.innerHTML="";
+  let list=[];
+  Object.entries(QTY).forEach(([s,q])=>{
+    const m=ALL.find(x=>x.slug===s);
+    for(let i=0;i<q;i++) list.push(m);
+  });
 
-    function buildModelUrl(slug) {
-      // QR = page modèle existante (/machines/?slug=...)
-      const base = window.location.origin + window.location.pathname.replace(/\/print\/.*$/, "/machines/");
-      return base + "?slug=" + encodeURIComponent(slug);
-    }
+  let offset=+document.getElementById("offset").value||0;
+  let i=0, grid;
 
-    function clearPages() {
-      pagesEl.innerHTML = "";
-    }
+  for(let k=0;k<offset;k++){
+    if(i%16===0){ grid=newPage(); }
+    addEmpty(grid); i++;
+  }
+  list.forEach(m=>{
+    if(i%16===0){ grid=newPage(); }
+    addLabel(grid,m); i++;
+  });
+}
 
-    function createPage() {
-      const page = document.createElement("div");
-      page.className = "page";
-      const grid = document.createElement("div");
-      grid.className = "grid";
-      page.appendChild(grid);
-      pagesEl.appendChild(page);
-      return grid;
-    }
+function newPage(){
+  const p=document.createElement("div");
+  p.className="page";
+  const g=document.createElement("div");
+  g.className="grid";
+  p.appendChild(g); pagesEl.appendChild(p);
+  return g;
+}
 
-    function addLabel(grid, item) {
-      const label = document.createElement("div");
-      label.className = "label";
+function addEmpty(g){
+  const d=document.createElement("div");
+  d.className="label label-empty";
+  g.appendChild(d);
+}
 
-      const txt = document.createElement("div");
-      txt.className = "txt";
-      txt.innerHTML =
-        '<div class="m">' + escapeHtml(item.marque || "") + '</div>' +
-        '<div class="mo">' + escapeHtml(item.modele || "") + '</div>' +
-        '<div class="c">' + escapeHtml(item.categorie || "") + '</div>';
+function addLabel(g,m){
+  const d=document.createElement("div");
+  d.className="label";
+  d.innerHTML=`<div class="txt">
+    <div class="m">${esc(m.marque)}</div>
+    <div class="mo">${esc(m.modele)}</div>
+    <div class="c">${esc(m.categorie)}</div>
+  </div><div class="qr"></div>`;
+  g.appendChild(d);
+  new QRCode(d.querySelector(".qr"),{text:buildUrl(m.slug),width:96,height:96,correctLevel:QRCode.CorrectLevel.H});
+}
 
-      const qrWrap = document.createElement("div");
-      qrWrap.className = "qr";
+document.getElementById("generateBtn").onclick=generate;
+document.getElementById("clearBtn").onclick=()=>{QTY={};renderPicker();pagesEl.innerHTML="";};
+document.getElementById("q").oninput=renderPicker;
+document.getElementById("cat").onchange=renderPicker;
 
-      label.appendChild(txt);
-      label.appendChild(qrWrap);
-      grid.appendChild(label);
+(async()=>{
+  ALL=await api("/rest/v1/machines?select=categorie,marque,modele,slug");
+  [...new Set(ALL.map(x=>x.categorie))].forEach(c=>{
+    document.getElementById("cat").innerHTML+=`<option>${esc(c)}</option>`;
+  });
+  renderPicker();
+})();
+</script>
 
-      const url = buildModelUrl(item.slug || "");
-      new QRCode(qrWrap, {
-        text: url,
-        width: 105,
-        height: 105,
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    }
-
-    let ALL = [];
-
-    // slug -> quantité
-    let QTY = {};
-
-    function setQty(slug, value) {
-      const n = Math.max(0, parseInt(value || "0", 10) || 0);
-      if (n <= 0) delete QTY[slug];
-      else QTY[slug] = n;
-    }
-
-    function getQty(slug) {
-      return QTY[slug] || 0;
-    }
-
-    function totalQty() {
-      return Object.values(QTY).reduce((a,b) => a + (b || 0), 0);
-    }
-
-    function applyAndShowPicker() {
-      const q = normalizeText(document.getElementById("q").value);
-      const cat = (document.getElementById("cat").value || "").trim();
-      const sortMode = document.getElementById("sort").value;
-
-      let filtered = ALL;
-
-      if (cat) filtered = filtered.filter(it => (it.categorie || "").trim() === cat);
-
-      if (q) {
-        filtered = filtered.filter(it => {
-          const combined = normalizeText(it.marque) + " " + normalizeText(it.modele);
-          return combined.includes(q);
-        });
-      }
-
-      filtered = sortItems(filtered, sortMode);
-
-      const t = totalQty();
-      countEl.textContent = `${filtered.length} modèle(s) affiché(s) — Sélection : ${t} étiquette(s) (${Math.ceil(t/16) || 0} page(s))`;
-
-      const pickEl = document.getElementById("picklist");
-      if (!filtered.length) {
-        pickEl.innerHTML = "<p>Aucun résultat.</p>";
-        return;
-      }
-
-      pickEl.innerHTML = `
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Modèle</th>
-              <th>Catégorie</th>
-              <th>Slug</th>
-              <th style="width:200px">Quantité</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(it => {
-              const slug = (it.slug || "").trim();
-              const qty = getQty(slug);
-              return `
-                <tr data-slug="${escapeHtml(slug)}">
-                  <td><strong>${escapeHtml(it.marque || "")}</strong><br>${escapeHtml(it.modele || "")}</td>
-                  <td>${escapeHtml(it.categorie || "")}</td>
-                  <td class="mono">${escapeHtml(slug)}</td>
-                  <td>
-                    <div class="qtywrap">
-                      <button class="smallbtn dec" type="button">−</button>
-                      <input class="qty" type="number" min="0" value="${qty}" />
-                      <button class="smallbtn inc" type="button">+</button>
-                    </div>
-                  </td>
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
-        </table>
-      `;
-
-      // Events +/− / input
-      pickEl.querySelectorAll("tr[data-slug]").forEach(row => {
-        const slug = row.getAttribute("data-slug");
-        const input = row.querySelector("input.qty");
-        const dec = row.querySelector("button.dec");
-        const inc = row.querySelector("button.inc");
-
-        input.addEventListener("input", () => {
-          setQty(slug, input.value);
-          // met à jour uniquement le compteur (sans reconstruire tout si vous voulez),
-          // mais ici on re-render pour rester simple et fiable
-          applyAndShowPicker();
-        });
-
-        dec.addEventListener("click", () => {
-          const v = Math.max(0, (parseInt(input.value || "0", 10) || 0) - 1);
-          input.value = v;
-          setQty(slug, v);
-          applyAndShowPicker();
-        });
-
-        inc.addEventListener("click", () => {
-          const v = (parseInt(input.value || "0", 10) || 0) + 1;
-          input.value = v;
-          setQty(slug, v);
-          applyAndShowPicker();
-        });
-      });
-    }
-
-    function generateLabelsFromQty() {
-      const itemsBySlug = new Map(ALL.map(it => [String(it.slug || "").trim(), it]));
-      const expanded = [];
-
-      for (const [slug, qty] of Object.entries(QTY)) {
-        const it = itemsBySlug.get(slug);
-        if (!it) continue;
-        for (let i = 0; i < qty; i++) expanded.push(it);
-      }
-
-      clearPages();
-
-      if (!expanded.length) {
-        countEl.textContent = "Sélection vide : mettez une quantité > 0 puis cliquez sur “Générer les étiquettes”.";
-        return;
-      }
-
-      countEl.textContent = `${expanded.length} étiquette(s) générée(s) — ${Math.ceil(expanded.length/16)} page(s)`;
-
-      let grid = null;
-      expanded.forEach((item, idx) => {
-        if (idx % 16 === 0) grid = createPage();
-        addLabel(grid, item);
-      });
-    }
-
-    async function init() {
-      try {
-        countEl.textContent = "Chargement des modèles…";
-        ALL = await loadAll();
-
-        // Remplit le filtre catégorie
-        const cats = uniqueSorted(ALL.map(x => x.categorie));
-        const catEl = document.getElementById("cat");
-        catEl.innerHTML = '<option value="">Toutes</option>' +
-          cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-
-        // Affiche la table quantités, sans générer les pages au départ
-        applyAndShowPicker();
-        clearPages();
-        countEl.textContent = `Chargé : ${ALL.length} modèle(s). Sélection : 0 étiquette.`;
-
-      } catch (e) {
-        countEl.textContent = "Erreur : " + (e.message || String(e));
-      }
-    }
-
-    document.getElementById("q").addEventListener("input", applyAndShowPicker);
-    document.getElementById("cat").addEventListener("change", applyAndShowPicker);
-    document.getElementById("sort").addEventListener("change", applyAndShowPicker);
-
-    document.getElementById("generateBtn").addEventListener("click", generateLabelsFromQty);
-
-    document.getElementById("clearBtn").addEventListener("click", () => {
-      QTY = {};
-      clearPages();
-      applyAndShowPicker();
-      countEl.textContent = `Sélection vidée.`;
-    });
-
-    document.getElementById("printBtn").addEventListener("click", () => window.print());
-
-    init();
-  </script>
 </body>
 </html>
