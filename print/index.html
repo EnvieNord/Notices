@@ -67,11 +67,17 @@
     }
 
     .page{
-      width:210mm; height:297mm;
-      padding:var(--page-margin);
-      box-sizing:border-box;
-      overflow:hidden;
-    }
+  width:210mm;
+  height:297mm;
+  padding:0;                 /* PAS de padding */
+  margin:0;                  /* PAS de marge */
+  box-sizing:border-box;
+  overflow:hidden;
+  position:relative;
+  left:0;
+  top:0;
+}
+
 
     .grid{
       display:grid;
