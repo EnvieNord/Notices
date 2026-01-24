@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Impression étiquettes QR — Envie Nord</title>
+
+  <!-- QRCode.js (génération QR côté navigateur) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root{
+      --envie-green:#009640;
+      --envie-green-dark:#006B2D;
+      --envie-bg:#F5F5F5;
+      --envie-white:#FFFFFF;
+      --border:#E5E5E5;
+
+      /* Ajustez au besoin après un test d'impression */
+      --page-margin: 8mm;      /* marge feuille */
+      --gap: 2mm;              /* espace entre étiquettes */
+      --label-radius: 3mm;     /* arrondi */
+    }
+
+    body{
+      margin: 20px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: var(--envie-bg);
+      color:#333;
+    }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 16px; background:var(--envie-white);
+      border:1px solid var(--border); border-radius:18px;
+      max-width: 1100px;
+    }
+    .brand{ font-weight:900; color:var(--envie-green-dark); }
+    a{ color:var(--envie-green); text-decoration:none; font-weight:800; }
+    a:hover{ text-decoration:underline; }
+
+    .panel{
+      margin-top: 14px;
+      padding:14px 16px;
+      background:var(--envie-white);
+      border:1px solid var(--border);
+      border-radius:18px;
+      max-width: 1100px;
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    label{ display:block; font-size:12px; color:#666; font-weight:800; margin-bottom:6px; }
+    input, select{
+      padding:12px 14px; border-radius:14px; border:1px solid var(--border);
+      background:#fff; min-width: 220px;
+    }
+    .btn{
+      display:inline-block;
+      padding:12px 18px;
+      border-radius:14px;
+      border:2px solid var(--envie-green);
+      background:#fff;
+      color:var(--envie-green);
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn:hover{ background:var(--envie-green); color:#fff; }
+
+    /* --- Zone d'étiquettes (APERÇU) --- */
+    .sheet{
+      margin-top: 14px;
+      max-width: 1100px;
+      background: var(--envie-white);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .hint{ color:#666; font-size:13px; margin: 0 0 10px; }
+
+    /* Conteneur qui simule une page A4 */
+    .page{
+      width: 210mm;
+      height: 297mm;
+      box-sizing: border-box;
+      padding: var(--page-margin);
+      margin: 0 auto 12mm;
+      background: #fff;
+      border: 1px dashed #ddd;   /* visible à l’écran, caché à l’impression */
+    }
+
+    /* Grille 2 colonnes x 8 lignes */
+    .grid{
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(8, 1fr);
+      gap: var(--gap);
+    }
+
+    .label{
+      border: 1px solid #ddd;
+      border-radius: var(--label-radius);
+      padding: 6mm 5mm;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 6mm;
+      overflow:hidden;
+    }
+
+    .label .txt{
+      min-width: 0;
+      flex: 1;
+    }
+    .label .txt .m{
+      font-weight: 900;
+      color: var(--envie-green-dark);
+      font-size: 12pt;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .label .txt .mo{
+      font-weight: 800;
+      font-size: 11pt;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .label .txt .c{
+      margin-top: 2mm;
+      font-size: 9pt;
+      color:#555;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .qr{
+      width: 28mm;
+      height: 28mm;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+
+    /* --- Impression --- */
+    @media print {
+      body{ margin:0; background:#fff; }
+      .topbar, .panel, .sheet .hint { display:none !important; }
+      .sheet{ border:none; padding:0; margin:0; }
+      .page{ border:none; margin:0; border-radius:0; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div style="display:flex;gap:12px;align-items:center">
+      <a href="../">← Accueil</a>
+      <div class="brand">Envie Nord — Impression étiquettes QR</div>
+    </div>
+    <button class="btn" id="printBtn">🖨️ Imprimer</button>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label>Recherche (marque / modèle)</label>
+        <input id="q" placeholder="ex: bosch, WAT..." />
+      </div>
+
+      <div>
+        <label>Catégorie</label>
+        <select id="cat">
+          <option value="">Toutes</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tri</label>
+        <select id="sort">
+          <option value="brand_model">Marque A→Z, Modèle A→Z</option>
+          <option value="category_brand_model">Catégorie, Marque, Modèle</option>
+          <option value="model_brand">Modèle A→Z, Marque A→Z</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Max étiquettes (optionnel)</label>
+        <input id="limit" type="number" min="1" placeholder="ex: 32" />
+      </div>
+
+      <div>
+        <button class="btn" id="refreshBtn">🔄 Générer</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;color:#666;font-size:13px" id="count"></div>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <p class="hint">Aperçu : 16 étiquettes par page (2 colonnes × 8). Faites un test sur papier puis ajustez <code>--page-margin</code> et <code>--gap</code> si votre planche a des marges spécifiques.</p>
+    <div id="pages"></div>
+  </div>
+
+  <script>
+    // ✅ Remplacez avec vos infos Supabase
+    const SUPABASE_URL = "https://ybepaugrwnlpdewzqdzp.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_Dy87RVWNEBzT-sxScuSr1A_kUflkc4a";
+
+    const pagesEl = document.getElementById("pages");
+    const countEl = document.getElementById("count");
+
+    function escapeHtml(s) {
+      return (s ?? "").toString()
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizeText(s) {
+      return (s ?? "").toString()
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    }
+
+    function uniqueSorted(values) {
+      const set = new Set(values.map(v => (v||"").trim()).filter(Boolean));
+      return Array.from(set).sort((a,b) => a.localeCompare(b, "fr", { sensitivity:"base" }));
+    }
+
+    async function supabaseGet(pathWithQuery) {
+      const res = await fetch(SUPABASE_URL + pathWithQuery, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: "Bearer " + SUPABASE_ANON_KEY,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error("Supabase (" + res.status + ") " + txt);
+      }
+      return await res.json();
+    }
+
+    async function loadAll() {
+      return await supabaseGet(
+        "/rest/v1/machines?select=categorie,marque,modele,slug&order=marque.asc,modele.asc"
+      );
+    }
+
+    function sortItems(arr, mode) {
+      const coll = (a, b) => a.localeCompare(b, "fr", { sensitivity: "base" });
+      const get = (it, key) => (it[key] || "").toString().trim();
+
+      const byBrandModel = (a,b) => coll(get(a,"marque"), get(b,"marque")) || coll(get(a,"modele"), get(b,"modele"));
+      const byModelBrand = (a,b) => coll(get(a,"modele"), get(b,"modele")) || coll(get(a,"marque"), get(b,"marque"));
+      const byCatBrandModel = (a,b) => coll(get(a,"categorie"), get(b,"categorie")) || byBrandModel(a,b);
+
+      const copy = arr.slice();
+      if (mode === "model_brand") copy.sort(byModelBrand);
+      else if (mode === "category_brand_model") copy.sort(byCatBrandModel);
+      else copy.sort(byBrandModel);
+      return copy;
+    }
+
+    function buildModelUrl(slug) {
+      // URL QR = page modèle existante
+      // IMPORTANT: si vous changez de domaine/repo, c'est ici
+      const base = window.location.origin + window.location.pathname.replace(/\/print\/.*$/, "/machines/");
+      return base + "?slug=" + encodeURIComponent(slug);
+    }
+
+    function clearPages() {
+      pagesEl.innerHTML = "";
+    }
+
+    function createPage() {
+      const page = document.createElement("div");
+      page.className = "page";
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      page.appendChild(grid);
+      pagesEl.appendChild(page);
+      return grid;
+    }
+
+    function addLabel(grid, item) {
+      const label = document.createElement("div");
+      label.className = "label";
+
+      const txt = document.createElement("div");
+      txt.className = "txt";
+      txt.innerHTML =
+        '<div class="m">' + escapeHtml(item.marque || "") + '</div>' +
+        '<div class="mo">' + escapeHtml(item.modele || "") + '</div>' +
+        '<div class="c">' + escapeHtml(item.categorie || "") + '</div>';
+
+      const qrWrap = document.createElement("div");
+      qrWrap.className = "qr";
+
+      label.appendChild(txt);
+      label.appendChild(qrWrap);
+      grid.appendChild(label);
+
+      // Génère le QR
+      const url = buildModelUrl(item.slug || "");
+      new QRCode(qrWrap, {
+        text: url,
+        width: 105,   // ~28mm à l'impression selon dpi, suffisant
+        height: 105,
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    let ALL = [];
+
+    function applyAndRender() {
+      const q = normalizeText(document.getElementById("q").value);
+      const cat = (document.getElementById("cat").value || "").trim();
+      const sortMode = document.getElementById("sort").value;
+      const limitRaw = (document.getElementById("limit").value || "").trim();
+      const limit = limitRaw ? Math.max(1, parseInt(limitRaw, 10)) : null;
+
+      let filtered = ALL;
+
+      if (cat) filtered = filtered.filter(it => (it.categorie || "").trim() === cat);
+
+      if (q) {
+        filtered = filtered.filter(it => {
+          const combined = normalizeText(it.marque) + " " + normalizeText(it.modele);
+          return combined.includes(q);
+        });
+      }
+
+      filtered = sortItems(filtered, sortMode);
+      if (limit) filtered = filtered.slice(0, limit);
+
+      clearPages();
+
+      if (!filtered.length) {
+        countEl.textContent = "0 étiquette (aucun résultat)";
+        return;
+      }
+
+      countEl.textContent = filtered.length + " étiquette(s) — " + Math.ceil(filtered.length / 16) + " page(s)";
+
+      let grid = null;
+      filtered.forEach((item, idx) => {
+        if (idx % 16 === 0) grid = createPage();
+        addLabel(grid, item);
+      });
+    }
+
+    async function init() {
+      try {
+        countEl.textContent = "Chargement des modèles…";
+        ALL = await loadAll();
+
+        // Remplit le filtre catégorie
+        const cats = uniqueSorted(ALL.map(x => x.categorie));
+        const catEl = document.getElementById("cat");
+        catEl.innerHTML = '<option value="">Toutes</option>' + cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+
+        applyAndRender();
+      } catch (e) {
+        countEl.textContent = "Erreur : " + (e.message || String(e));
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", applyAndRender);
+    document.getElementById("q").addEventListener("input", applyAndRender);
+    document.getElementById("cat").addEventListener("change", applyAndRender);
+    document.getElementById("sort").addEventListener("change", applyAndRender);
+
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+    init();
+  </script>
+</body>
+</html>
