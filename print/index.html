@@ -1,4 +1,4 @@
-<!doctype html>
+ <!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
@@ -12,14 +12,17 @@
     :root{
       --envie-green:#009640;
       --envie-green-dark:#006B2D;
+      --envie-green-light:#E6F4EC;
+      --envie-text:#333333;
       --envie-bg:#F5F5F5;
       --envie-white:#FFFFFF;
       --border:#E5E5E5;
 
-      /* Ajustez au besoin après un test d'impression */
-      --page-margin: 0mm;      /* marge feuille */
-      --gap: 0mm;              /* espace entre étiquettes */
-      --label-radius: 3mm;     /* arrondi */
+      /* Planches sans marge */
+      --page-margin: 0mm;
+      --gap: 0mm;
+
+      --label-radius: 0mm; /* souvent mieux sur planches sans marge */
     }
 
     body{
@@ -65,6 +68,14 @@
       cursor:pointer;
     }
     .btn:hover{ background:var(--envie-green); color:#fff; }
+    .btn-muted{
+      border-color:#bbb !important;
+      color:#444 !important;
+    }
+    .btn-muted:hover{
+      background:#f2f2f2 !important;
+      color:#222 !important;
+    }
 
     /* --- Zone d'étiquettes (APERÇU) --- */
     .sheet{
@@ -86,7 +97,7 @@
       padding: var(--page-margin);
       margin: 0 auto 12mm;
       background: #fff;
-      border: 1px dashed #ddd;   /* visible à l’écran, caché à l’impression */
+      border: 1px dashed #ddd; /* visible à l’écran, caché à l’impression */
     }
 
     /* Grille 2 colonnes x 8 lignes */
@@ -149,6 +160,40 @@
       flex: 0 0 auto;
     }
 
+    /* --- Table quantités --- */
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:8px;
+    }
+    .table th, .table td{
+      border-bottom:1px solid #eee;
+      padding:10px 6px;
+      font-size:14px;
+      vertical-align:middle;
+    }
+    .table th{
+      text-align:left;
+      color:#555;
+      font-weight:900;
+    }
+    .qtywrap{
+      display:flex; gap:8px; align-items:center;
+    }
+    .smallbtn{
+      width:34px;height:34px;border-radius:10px;
+      border:1px solid var(--border); background:#fff;
+      font-weight:900; cursor:pointer;
+    }
+    .smallbtn:hover{ background:#f3f3f3; }
+    .qty{
+      width:70px;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; color:#666; }
+
     /* --- Impression --- */
     @media print {
       body{ margin:0; background:#fff; }
@@ -192,27 +237,29 @@
         </select>
       </div>
 
-      <div>
-        <label>Max étiquettes (optionnel)</label>
-        <input id="limit" type="number" min="1" placeholder="ex: 32" />
-      </div>
-
-      <div>
-        <button class="btn" id="refreshBtn">🔄 Générer</button>
+      <div style="display:flex;gap:10px;align-items:end">
+        <button class="btn" id="generateBtn">🧾 Générer les étiquettes</button>
+        <button class="btn btn-muted" id="clearBtn">🧹 Vider</button>
       </div>
     </div>
+
     <div style="margin-top:10px;color:#666;font-size:13px" id="count"></div>
+
+    <div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px">
+      <div style="font-weight:900;margin-bottom:8px;color:var(--envie-green-dark)">Sélection & quantités</div>
+      <div id="picklist"></div>
+    </div>
   </div>
 
   <div class="sheet" id="sheet">
-    <p class="hint">Aperçu : 16 étiquettes par page (2 colonnes × 8). Faites un test sur papier puis ajustez <code>--page-margin</code> et <code>--gap</code> si votre planche a des marges spécifiques.</p>
+    <p class="hint">Aperçu : 16 étiquettes par page (2 colonnes × 8). Pour des planches sans marge : mettez “Marges : aucune”, “Échelle : 100%”, et désactivez en-têtes/pieds de page dans la fenêtre d’impression.</p>
     <div id="pages"></div>
   </div>
 
   <script>
     // ✅ Remplacez avec vos infos Supabase
-    const SUPABASE_URL = "https://ybepaugrwnlpdewzqdzp.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_Dy87RVWNEBzT-sxScuSr1A_kUflkc4a";
+    const SUPABASE_URL = "https://XXXX.supabase.co";
+    const SUPABASE_ANON_KEY = "VOTRE_ANON_KEY";
 
     const pagesEl = document.getElementById("pages");
     const countEl = document.getElementById("count");
@@ -274,8 +321,7 @@
     }
 
     function buildModelUrl(slug) {
-      // URL QR = page modèle existante
-      // IMPORTANT: si vous changez de domaine/repo, c'est ici
+      // QR = page modèle existante (/machines/?slug=...)
       const base = window.location.origin + window.location.pathname.replace(/\/print\/.*$/, "/machines/");
       return base + "?slug=" + encodeURIComponent(slug);
     }
@@ -312,11 +358,10 @@
       label.appendChild(qrWrap);
       grid.appendChild(label);
 
-      // Génère le QR
       const url = buildModelUrl(item.slug || "");
       new QRCode(qrWrap, {
         text: url,
-        width: 105,   // ~28mm à l'impression selon dpi, suffisant
+        width: 105,
         height: 105,
         correctLevel: QRCode.CorrectLevel.H
       });
@@ -324,12 +369,27 @@
 
     let ALL = [];
 
-    function applyAndRender() {
+    // slug -> quantité
+    let QTY = {};
+
+    function setQty(slug, value) {
+      const n = Math.max(0, parseInt(value || "0", 10) || 0);
+      if (n <= 0) delete QTY[slug];
+      else QTY[slug] = n;
+    }
+
+    function getQty(slug) {
+      return QTY[slug] || 0;
+    }
+
+    function totalQty() {
+      return Object.values(QTY).reduce((a,b) => a + (b || 0), 0);
+    }
+
+    function applyAndShowPicker() {
       const q = normalizeText(document.getElementById("q").value);
       const cat = (document.getElementById("cat").value || "").trim();
       const sortMode = document.getElementById("sort").value;
-      const limitRaw = (document.getElementById("limit").value || "").trim();
-      const limit = limitRaw ? Math.max(1, parseInt(limitRaw, 10)) : null;
 
       let filtered = ALL;
 
@@ -343,19 +403,100 @@
       }
 
       filtered = sortItems(filtered, sortMode);
-      if (limit) filtered = filtered.slice(0, limit);
 
-      clearPages();
+      const t = totalQty();
+      countEl.textContent = `${filtered.length} modèle(s) affiché(s) — Sélection : ${t} étiquette(s) (${Math.ceil(t/16) || 0} page(s))`;
 
+      const pickEl = document.getElementById("picklist");
       if (!filtered.length) {
-        countEl.textContent = "0 étiquette (aucun résultat)";
+        pickEl.innerHTML = "<p>Aucun résultat.</p>";
         return;
       }
 
-      countEl.textContent = filtered.length + " étiquette(s) — " + Math.ceil(filtered.length / 16) + " page(s)";
+      pickEl.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Modèle</th>
+              <th>Catégorie</th>
+              <th>Slug</th>
+              <th style="width:200px">Quantité</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(it => {
+              const slug = (it.slug || "").trim();
+              const qty = getQty(slug);
+              return `
+                <tr data-slug="${escapeHtml(slug)}">
+                  <td><strong>${escapeHtml(it.marque || "")}</strong><br>${escapeHtml(it.modele || "")}</td>
+                  <td>${escapeHtml(it.categorie || "")}</td>
+                  <td class="mono">${escapeHtml(slug)}</td>
+                  <td>
+                    <div class="qtywrap">
+                      <button class="smallbtn dec" type="button">−</button>
+                      <input class="qty" type="number" min="0" value="${qty}" />
+                      <button class="smallbtn inc" type="button">+</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+
+      // Events +/− / input
+      pickEl.querySelectorAll("tr[data-slug]").forEach(row => {
+        const slug = row.getAttribute("data-slug");
+        const input = row.querySelector("input.qty");
+        const dec = row.querySelector("button.dec");
+        const inc = row.querySelector("button.inc");
+
+        input.addEventListener("input", () => {
+          setQty(slug, input.value);
+          // met à jour uniquement le compteur (sans reconstruire tout si vous voulez),
+          // mais ici on re-render pour rester simple et fiable
+          applyAndShowPicker();
+        });
+
+        dec.addEventListener("click", () => {
+          const v = Math.max(0, (parseInt(input.value || "0", 10) || 0) - 1);
+          input.value = v;
+          setQty(slug, v);
+          applyAndShowPicker();
+        });
+
+        inc.addEventListener("click", () => {
+          const v = (parseInt(input.value || "0", 10) || 0) + 1;
+          input.value = v;
+          setQty(slug, v);
+          applyAndShowPicker();
+        });
+      });
+    }
+
+    function generateLabelsFromQty() {
+      const itemsBySlug = new Map(ALL.map(it => [String(it.slug || "").trim(), it]));
+      const expanded = [];
+
+      for (const [slug, qty] of Object.entries(QTY)) {
+        const it = itemsBySlug.get(slug);
+        if (!it) continue;
+        for (let i = 0; i < qty; i++) expanded.push(it);
+      }
+
+      clearPages();
+
+      if (!expanded.length) {
+        countEl.textContent = "Sélection vide : mettez une quantité > 0 puis cliquez sur “Générer les étiquettes”.";
+        return;
+      }
+
+      countEl.textContent = `${expanded.length} étiquette(s) générée(s) — ${Math.ceil(expanded.length/16)} page(s)`;
 
       let grid = null;
-      filtered.forEach((item, idx) => {
+      expanded.forEach((item, idx) => {
         if (idx % 16 === 0) grid = createPage();
         addLabel(grid, item);
       });
@@ -369,18 +510,31 @@
         // Remplit le filtre catégorie
         const cats = uniqueSorted(ALL.map(x => x.categorie));
         const catEl = document.getElementById("cat");
-        catEl.innerHTML = '<option value="">Toutes</option>' + cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+        catEl.innerHTML = '<option value="">Toutes</option>' +
+          cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
 
-        applyAndRender();
+        // Affiche la table quantités, sans générer les pages au départ
+        applyAndShowPicker();
+        clearPages();
+        countEl.textContent = `Chargé : ${ALL.length} modèle(s). Sélection : 0 étiquette.`;
+
       } catch (e) {
         countEl.textContent = "Erreur : " + (e.message || String(e));
       }
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", applyAndRender);
-    document.getElementById("q").addEventListener("input", applyAndRender);
-    document.getElementById("cat").addEventListener("change", applyAndRender);
-    document.getElementById("sort").addEventListener("change", applyAndRender);
+    document.getElementById("q").addEventListener("input", applyAndShowPicker);
+    document.getElementById("cat").addEventListener("change", applyAndShowPicker);
+    document.getElementById("sort").addEventListener("change", applyAndShowPicker);
+
+    document.getElementById("generateBtn").addEventListener("click", generateLabelsFromQty);
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      QTY = {};
+      clearPages();
+      applyAndShowPicker();
+      countEl.textContent = `Sélection vidée.`;
+    });
 
     document.getElementById("printBtn").addEventListener("click", () => window.print());
 
