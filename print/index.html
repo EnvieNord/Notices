@@ -115,10 +115,43 @@
     .smallbtn{ width:32px; height:32px; border-radius:8px; border:1px solid #ccc; cursor:pointer; }
 
     @media print{
-      body{ margin:0; background:#fff; }
-      .topbar,.panel{ display:none; }
-      @page{ size:A4; margin:0; }
-    }
+  html, body{
+    margin:0 !important;
+    padding:0 !important;
+    background:#fff !important;
+  }
+
+  /* on masque l'UI */
+  .topbar, .panel{ display:none !important; }
+
+  /* très important : supprimer le padding/marges du conteneur écran */
+  .sheet{
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    max-width:none !important;
+  }
+
+  /* pages A4 alignées en haut à gauche */
+  #pages{
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  .page{
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    width:210mm !important;
+    height:297mm !important;
+    overflow:hidden !important;
+    page-break-after: always;
+  }
+
+  @page{ size:A4; margin:0; }
+}
+
   </style>
 </head>
 
